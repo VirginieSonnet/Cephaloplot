@@ -65,30 +65,29 @@ Cephalopod outputs 3 R objects:
 
 ```{r}
 # path to the data 
-project_wd <- "../data/" # note that the output folder needs to be included in the project_wd if that's the arborescence of your files
+project_wd <- "../data/" # note that the output folder needs to be included in the project_wd path if that's the arborescence of your files
 ```
 
-# Observations 
+# Observations
 
 ------------------------------------------------------------------------
 
-You can extract the original observations with `extract_observations`. 
+You can extract the original observations with `extract_observations`.
 
 ```{r}
 extract_observations(project_wd,FOLDER_NAME = "zooscan_grey",SUBFOLDER_NAME="all") %>% 
   head(10)
 ```
 
-
-# Model performance 
+# Model performance
 
 ------------------------------------------------------------------------
 
-You can extract the different performance metrics used in the QC with `extract_performance`: 
+You can extract the different performance metrics used in the QC with `extract_performance`:
 
-* R2: good QC if > 0.25 (continuous) or 0.5 (presence-absence)
-* CUM_VIP: cumulative prediction from the top 3 predictors, goof QC if > 50%
-* NSD: normalized standard deviation (mean across a projection of standard deviation divided by the max across bootstrap for each algorithm, month and cell), good QC if < 0.5
+-   R2: good QC if \> 0.25 (continuous) or 0.5 (presence-absence)
+-   CUM_VIP: cumulative prediction from the top 3 predictors, goof QC if \> 50%
+-   NSD: normalized standard deviation, good QC if \< 0.5
 
 ```{r}
 # for all models 
@@ -105,8 +104,7 @@ extract_performance(project_wd,FOLDER_NAME = "zooscan_grey",SUBFOLDER_NAME="all"
 
 ## List and predictor importance
 
-With `extract_predictors`, you can retrieve all the predictors used as input (no subfolder indicated), or just the selected predictors for each model (subfolder indicated).
-The later will also retrieve the mean, median and sd of the predictors importance in that model (calculated based on the n folds x m bootstraps values).
+With `extract_predictors`, you can retrieve all the predictors used as input (no subfolder indicated), or just the selected predictors for each model (subfolder indicated). The later will also retrieve the mean, median and sd of the predictors importance in that model (calculated based on the n folds x m bootstraps values).
 
 ```{r}
 # extract the input predictors 
@@ -123,9 +121,9 @@ extract_predictors(project_wd,FOLDER_NAME = "zooscan_grey",
   head(10)
 ```
 
-## Predictor category 
+## Predictor category
 
-Some of the predictors have similar patterns, or relate to forcings in similar families These are subjective (some could be in several cateries like co2 in carbonate or longitude, or aph in optics or productivity) and you are welcome to change them, an example is in the file predictors_categories.csv, and you can retrieve them with the function `predictor_categories`. 
+Some of the predictors have similar patterns, or relate to forcings in similar families These are subjective (some could be in several cateries like co2 in carbonate or longitude, or aph in optics or productivity) and you are welcome to change them, an example is in the file predictors_categories.csv, and you can retrieve them with the function `predictor_categories`.
 
 ```{r}
 # on the 6 variables select
@@ -137,23 +135,17 @@ inputpreds <- predictor_categories(inputpreds)
 head(inputpreds,10)
 ```
 
-
-# Predictions 
+# Predictions
 
 ------------------------------------------------------------------------
 
-You can extract the predictions using the `extract_predictions` function, it takes as input: 
-* project_wd, FOLDER_NAME, SUBFOLDER_NAME
-* ensemble: boolean, if FALSE returns all the mean, sd, normalized standard deviation and coefficient of variation across bootstraps for each model, month and factor, if TRUE returns an ensemble model so the average values across models 
-* model: vector, models to retrieve, default to NULL (all models if ensemble = FALSE, and models that pass the QC if ensemble = TRUE)
-* m: vector, months to retrieve, default to NULL (all months)
-* f: vector, factor levels to retrieve, default to NULL (all levels). If Cephalopod wasn't used with a factor variable, the level will be 1
+You can extract the predictions using the `extract_prediction` function, it takes as input: \* project_wd, FOLDER_NAME, SUBFOLDER_NAME \* ensemble: boolean, if FALSE returns all the mean, sd, normalized standard deviation and coefficient of variation across bootstraps for each model, month and factor, if TRUE returns an ensemble model so the average values across models \* model: vector, models to retrieve, default to NULL (all models if ensemble = FALSE, and models that pass the QC if ensemble = TRUE) \* m: vector, months to retrieve, default to NULL (all months) \* f: vector, factor levels to retrieve, default to NULL (all levels). If Cephalopod wasn't used with a factor variable, the level will be 1
 
 **Note 1**: the projection for the ensemble is not stored in the MODEL output but is recalculated in the function if you indicate ENSEMBLE = TRUE (based on the MODELS that pass the QC or based on the models indicated in the vector *model*), otherwise it returns a data frame of all the models projections
 
-**Note 2**: for the Cephalopod-factor variable, the output for the last dimension is in the order of appearance in the data (i.e. if in varfactor the first sample is a Night sample, then the first output is Night and the second is Day). 
+**Note 2**: for the Cephalopod-factor variable, the output for the last dimension is in the order of appearance in the data (i.e. if in varfactor the first sample is a Night sample, then the first output is Night and the second is Day).
 
-**Note 3**: the function calculates the standard deviation, normalized standard deviation and coefficient of variation. The normalized standard deviation is calculated with the max value within models (i.e. taking the max average of the bootstraps per cell, month and factor for a specific color), whatever the subset list of months and factors you indicate it, so it is inter-comparable intra-models (e.g. month 9 at night and month 9 at day of RF model) but not inter-models. This is to avoid bias in the normalization due to a model being wildly different, however, that's why the max used in the normalization for each model is also recorded and returned when ensemble is not TRUE so that you can calculate an inter-models comparadle NSD. When ensemble is TRUE, the averages NSD per cell across model is retrieved. 
+**Note 3**: the function calculates the standard deviation, normalized standard deviation and coefficient of variation. The normalized standard deviation is calculated with the max value within models (i.e. taking the max average of the bootstraps per cell, month and factor for a specific color), whatever the subset list of months and factors you indicate it, so it is inter-comparable intra-models (e.g. month 9 at night and month 9 at day of RF model) but not inter-models. This is to avoid bias in the normalization due to a model being wildly different, however, that's why the max used in the normalization for each model is also recorded and returned when ensemble is not TRUE so that you can calculate an inter-models comparadle NSD. When ensemble is TRUE, the averages NSD per cell across model is retrieved.
 
 ```{r}
 # extract all model predictions
@@ -180,9 +172,3 @@ df <- extract_prediction(project_wd,FOLDER_NAME = "zooscan_grey_varfactor",SUBFO
                           ensemble=TRUE,model=NULL,m=NULL,f=NULL)
 head(df,10)
 ```
-
-
-
-
-
-
