@@ -1,12 +1,13 @@
-#############################
-# Functions to extract data #
-#############################
+#' ============================= FUNCTIONS =================================
+#' Functions to extract data from model output from Cephalopod. 
+#' 
+#' * extract_observations: retrieve the original observations 
+#' * extract_performance: retrieve predictive performance and cumulative variable importance per model 
+#' * extract_predictors: retrieve the input predictors or the predictors selected 
+#' * extract_predictions: retrieve the projected observations 
+#' =============================================================================
 
-# extract_observations: retrieve the original observations 
-# extract_performance: retrieve predictive performance and cumulative variable importance per model 
-# extract_predictors: retrieve the input predictors or the predictors selected 
-# extract_predictions: retrieve the projected observations 
-# extract_uncertainty: retrieve the standard deviation associated with the projection
+
 
 
 # ----- extract_observations -----
@@ -155,9 +156,7 @@ extract_prediction <- function(project_wd,FOLDER_NAME,SUBFOLDER_NAME,
   #       - m: vector (optional), months to pool average over e.g.: c(1,2,3), default to all
   #       - f: int (optional), one factor to plot (as a numeric) e.g.: 1 
   # Outputs: 
-  #       - output: list, with dataframes "merged_df" with x (longitude), 
-  #                 y (latitude), grey (projection), sd (uncertainty as 
-  #                 standard deviation), and "land_df" with x, y and land
+  #       - y_ens: data frame, with coordinates, and predicted mean, std, normalized standard deviation and coefficient of variation 
   
   # 1. Load the model output
   load(paste0(project_wd, FOLDER_NAME,"/CALL.RData"))
@@ -270,7 +269,7 @@ extract_prediction <- function(project_wd,FOLDER_NAME,SUBFOLDER_NAME,
       df <- tibble(
         latitude = coords$latitude,
         longitude = coords$longitude,
-        predictedvalue = mean_avg,
+        predictedvalue  = mean_avg,
         predictedsd     = mean_sd,
         varfactor       = paste(factor_ids, collapse = ","),
         month           = paste(month_ids, collapse = ","))
@@ -299,4 +298,36 @@ extract_prediction <- function(project_wd,FOLDER_NAME,SUBFOLDER_NAME,
              max_nsd=global_max)
   }
   return(y_ens)
+}
+
+# ----- extract_land -----
+
+extract_land <- function(project_wd,FOLDER_NAME){
+  # --- Function to extract the land mask ---
+  # Inputs: 
+  #       - project_wd: string, path to the project folder
+  #       - FOLDER_NAME: string, folder output from Cephalopod 
+  # Outputs: 
+  #       - land_df: data frame, with coordinates and NA for land values 
+  
+  # Load the environmental data 
+  load(paste0(project_wd,FOLDER_NAME,"/CALL.RData"))
+  
+  # Retrieve the structure of the first environmental variable  
+  CALL$ENV_DATA <- lapply(CALL$ENV_DATA, function(x) terra::rast(x)) # unpack the raster
+  r0 <- CALL$ENV_DATA[[1]][[1]] # get the first environmental file to serve as structure
+  r0_name <- CALL[["ENV_VAR"]][1] # retrieve the name to update it 
+  
+  # Extract the land from the environmental file to use as landmask: 9999 for land and NA for ocean
+  land <- r0
+  land[is.na(land)] <- 9999
+  land[land != 9999] <- NA
+  
+  # Turn into a dateframe 
+  land_df <- as.data.frame(land, xy = TRUE, na.rm = TRUE) %>% 
+    rename(land=all_of(r0_name),
+           longitude=x,
+           latitude=y)
+  
+  return(land_df)
 }
