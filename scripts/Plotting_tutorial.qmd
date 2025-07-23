@@ -1,0 +1,87 @@
+---
+title: "Example use of the Cephaloplot plot functions" # title of the notebook
+author: "Virginie Sonnet" 
+date: 2025-07-20
+description: 
+    This tutorial shows how to use the functions in Cephaloplot to plot data extracted from the model output. 
+html: 
+theme: sandstone
+#mainfont: "LM Roman"
+fontsize: 0.99em
+toc: true # table of contents
+toc-depth: 5 
+toc-location: left # table of contents on the left 
+lightbox: TRUE # allows to click on an image to zoom in the HTML document
+embed-resources: true # avoid having dependencies in an extra folder
+smooth-scroll: true
+editor: visual
+code-overflow: wrap
+code-fold: false
+execute:
+    eval: true # run the code chunks FALSE/TRUE
+    echo: true # print the source code FALSE/TRUE
+    error: true # print error messages FALSE/TRUE
+    message: false # print any message FALSE/TRUE
+    warning: false # print warning message FALSE/TRUE
+    cache: false 
+---
+
+```{r}
+#| eval: false
+#| echo: false
+
+Other outputs: pdf_document, html_notebook, word_document 
+The HTML below just says to use the "LM Roman" family as font (kind of Arial?) and if you want the Latex font, you just need "Latin Modern Roman". The line below indicates that the text has to be justified. 
+```
+
+```{r}
+#| include: false
+
+# make sure that no object is in the environment and collect the garbage 
+rm(list=ls())
+gc()
+```
+
+```{r}
+#| results: hide
+
+# packages
+source("../functions/required_packages.R")
+
+# functions 
+source("../functions/extract.R") # predictor categories
+source("../functions/categories.R") # predictor categories
+source("../functions/plot.R") # predictor categories
+```
+
+# Data
+
+------------------------------------------------------------------------
+
+```{r}
+# path to the data 
+project_wd <- "../data/" # note that the output folder needs to be included in the project_wd path if that's the arborescence of your files
+
+# extract predictions 
+prediction_night <- extract_prediction(project_wd,FOLDER_NAME = "zooscan_grey_varfactor", SUBFOLDER_NAME="all",
+                          ensemble=TRUE,model=c("BRT","RF"),m=NULL,f=1)
+```
+
+# Observations
+
+------------------------------------------------------------------------
+
+TO COME: You can plot the original observations with `plot_observations`.
+
+# Model performance
+
+------------------------------------------------------------------------
+
+TO COME: You can plot the different performance metrics used in the QC with the `plot_performance` function.
+
+
+# Predictions
+
+------------------------------------------------------------------------
+
+TO COME: With `plot_prediction`, you can plot the model prediction.
