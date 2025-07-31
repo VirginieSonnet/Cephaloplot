@@ -238,8 +238,8 @@ extract_prediction <- function(project_wd,FOLDER_NAME,SUBFOLDER_NAME,
         mutate(grid=row_number()) %>% 
         rename(longitude=x,latitude=y)
       df <- df %>%
-        mutate(grid=as.integer(grid)) %>%
-        suppressMessages(left_join(coords)) %>% 
+        mutate(grid=as.integer(grid)) %>% {
+        suppressMessages(left_join(.,coords)) } %>% 
         # remove the grid row numbers
         dplyr::select(-grid) %>%
         # add the model name and the model nsd max

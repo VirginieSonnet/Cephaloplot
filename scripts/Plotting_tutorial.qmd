@@ -192,6 +192,7 @@ plot_prediction(output=df_day, model="ensemble",
                 ylim=NULL,ylab="Zooplankton community \ntransparency",
                 ycolors=c("#2D2B63","#FB3C44","#F7FF84"),
                 correct.lightness=TRUE,legend_position="right",
+                # exclude one very low observation
                 obs=TRUE,obs_data=filter(df_obs,measurementvalue > 120),obs_size=2,
                 latitude_profile=FALSE)
 
