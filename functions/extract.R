@@ -247,24 +247,22 @@ extract_prediction <- function(project_wd,FOLDER_NAME,SUBFOLDER_NAME,
                max_nsd=model_max) %>% 
         # remove land values 
         drop_na(predictedvalue)
-      
-      return(df)
-      
+
     } else {
       
       # 3.2. Average model if ensemble = TRUE 
       
       # 3.2.1. Average per model 
       
-      cat("\n Processing ensemble model")
+      cat("\n Processing months/factor ensemble per model")
       
       # average over months and varfactors (dimension 2,3) => result is [location]
       mean_avg <- apply(y_avg[,month_ids,factor_ids], 1, mean, na.rm = TRUE)  
       mean_sd <- apply(y_sd[,month_ids,factor_ids], 1, mean, na.rm = TRUE)  
       
       # convert to dataframe
-      coords <- as.data.frame(xyFromCell(r0, 1:length(mean_avg)))
-      names(coords) <- c("longitude", "latitude")
+      coords <- as.data.frame(xyFromCell(r0, 1:length(mean_avg))) %>% 
+        rename("longitude"="x", "latitude"="y")
       
       df <- tibble(
         latitude = coords$latitude,
@@ -273,18 +271,21 @@ extract_prediction <- function(project_wd,FOLDER_NAME,SUBFOLDER_NAME,
         predictedsd     = mean_sd,
         varfactor       = paste(factor_ids, collapse = ","),
         month           = paste(month_ids, collapse = ","))
-      return(df)
     }
+    return(df)
   })
   
   # 3.2.2. Average over models
   
   if (ensemble == TRUE) {
     
+    cat("\n Processing model ensemble")
+    
     # average over models
     y_ens <- y_ens %>% 
       group_by(latitude,longitude,varfactor,month) %>% 
-      suppressMessages(summarize(across(everything(), ~mean(.x, na.rm = TRUE)))) %>% 
+      summarize(predictedvalue=mean(predictedvalue,na.rm=TRUE),
+                predictedsd=mean(predictedsd,na.rm=TRUE)) %>% 
       # remove land values 
       drop_na(predictedvalue)
     
