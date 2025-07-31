@@ -1,0 +1,285 @@
+---
+title: "Example use of the Cephaloplot plot functions" # title of the notebook
+author: "Virginie Sonnet" 
+date: 2025-07-20
+description: 
+    This tutorial shows how to use the functions in Cephaloplot to plot data extracted from the model output. 
+html: 
+theme: sandstone
+#mainfont: "LM Roman"
+fontsize: 0.99em
+toc: true # table of contents
+toc-depth: 5 
+toc-location: left # table of contents on the left 
+lightbox: TRUE # allows to click on an image to zoom in the HTML document
+embed-resources: true # avoid having dependencies in an extra folder
+smooth-scroll: true
+editor: visual
+code-overflow: wrap
+code-fold: false
+execute:
+    eval: true # run the code chunks FALSE/TRUE
+    echo: true # print the source code FALSE/TRUE
+    error: true # print error messages FALSE/TRUE
+    message: false # print any message FALSE/TRUE
+    warning: false # print warning message FALSE/TRUE
+    cache: false 
+---
+
+```{r}
+#| eval: false
+#| echo: false
+
+Other outputs: pdf_document, html_notebook, word_document 
+The HTML below just says to use the "LM Roman" family as font (kind of Arial?) and if you want the Latex font, you just need "Latin Modern Roman". The line below indicates that the text has to be justified. 
+```
+
+```{r}
+#| include: false
+
+# make sure that no object is in the environment and collect the garbage 
+rm(list=ls())
+gc()
+```
+
+```{r}
+#| results: hide
+
+# packages
+source("../functions/required_packages.R")
+
+# functions 
+source("../functions/extract.R") # predictor categories
+source("../functions/categories.R") # predictor categories
+source("../functions/plot.R") # predictor categories
+```
+
+# Data
+
+------------------------------------------------------------------------
+
+```{r}
+# path to the data 
+project_wd <- "../data/" # note that the output folder needs to be included in the project_wd path if that's the arborescence of your files
+
+# observations 
+df_obs <- extract_observations(project_wd,FOLDER_NAME = "zooscan_grey_varfactor",
+                               SUBFOLDER_NAME="all")
+
+# performance
+all_perf <- extract_performance(project_wd,FOLDER_NAME = "zooscan_grey_varfactor",
+                                SUBFOLDER_NAME="all")
+
+# predictions
+df_day <- extract_prediction("../data/",FOLDER_NAME = "zooscan_grey_varfactor",SUBFOLDER_NAME="all",
+                            ensemble=TRUE,model=c("BRT","RF"),m=1:12,f=2)
+
+df_night <- extract_prediction(project_wd,FOLDER_NAME = "zooscan_grey_varfactor",SUBFOLDER_NAME="all",
+                            ensemble=TRUE,model=c("BRT","RF"),m=1:12,f=1)
+
+# land 
+df_land <- extract_land(project_wd,FOLDER_NAME="zooscan_grey_varfactor")
+```
+
+# Observations
+
+------------------------------------------------------------------------
+
+If you have a varfactor, the observations give you the order of the levels, here Night correspond to level 1 and Day to level 2:
+
+```{r}
+unique(df_obs$varfactor)
+```
+
+You can plot the original observations with `plot_observations`.
+
+```{r}
+plot_observations(df_obs,colors=c("#2D2B63","#FB3C44","#F7FF84"),
+                  correct.lightness=FALSE,lim=NULL,
+                  lab="Zooplankton \ncommunity \ntransparency",
+                  title="Observations of zooplankton community transparency",
+                  land=df_land)
+
+# custom limits for colorbar (note that values outside of bounds are assigned to the extreme colors), corrected color lightness, world map instead of land mask, custom tet size, legend at the bottom
+lim <- round(quantile(df_obs$measurementvalue,c(0.025,0.975),na.rm=TRUE)/5)*5
+plot_observations(df_obs,colors=c("#2D2B63","#FB3C44","#F7FF84"), alpha=0.7,
+                  correct.lightness=TRUE,lim=lim,legend_position="bottom",
+                  lab="Zooplankton community transparency",
+                  title="Observations of zooplankton community transparency",
+                  land=NULL,landcolor="grey85",landfill="#E8E8E8") + 
+  theme(legend.text=element_text(size=10))
+
+# add a latitude profile (note that it returns a patchwork so it cannot be as easily customized as a ggplot)
+plot_observations(df_obs,colors=c("#2D2B63","#FB3C44","#F7FF84"), alpha=0.7,
+                  correct.lightness=TRUE,lim=lim,legend_position="bottom",
+                  lab="Zooplankton community \ntransparency",
+                  land=NULL,landcolor="grey85",landfill="#E8E8E8",
+                  latitude_profile=TRUE) 
+
+# only plot the average, no legend and a different span for loess
+plot_observations(df_obs,colors=c("#2D2B63","#FB3C44","#F7FF84"), alpha=0.7,
+                  correct.lightness=TRUE,lim=lim,legend_position="bottom",
+                  lab="Zooplankton community \ntransparency",
+                  land=NULL,landcolor="grey85",landfill="#E8E8E8",
+                  latitude_profile=TRUE,latitude_curves="average",
+                  latitude_legend=FALSE,latitude_span=0.5) 
+
+# only plot 2 seasons
+plot_observations(df_obs,colors=c("#2D2B63","#FB3C44","#F7FF84"), alpha=0.7,
+                  correct.lightness=TRUE,lim=lim,legend_position="bottom",
+                  lab="Zooplankton community \ntransparency",
+                  land=NULL,landcolor="grey85",landfill="#E8E8E8",
+                  latitude_profile=TRUE,latitude_curves=c("summer","winter"),
+                  latitude_legend=TRUE,latitude_span=0.75) 
+```
+
+# Model performance
+
+------------------------------------------------------------------------
+
+You can plot the different performance metrics used in the QC with the `plot_performance` function.
+
+```{r}
+# plot performance for all models - separate metrics 
+plot_performance(all_perf,plot_type="separate",metrics=NULL,
+                 models=NULL,threshold=TRUE)
+
+# plot_performance for all models - specific metrics (ordered by the first one)
+plot_performance(all_perf,plot_type="separate",metrics=c("NSD","CUM_VIP"),
+                 models=c("GLM","MLP","ENSEMBLE"),threshold=FALSE,
+                 dot_size=1,dot_color="red")
+
+# plot performance for all models - combined metrics (threshold_size=0 removes it)
+plot_performance(all_perf,plot_type="combined",models=c("GLM","GAM","BRT","RF","ENSEMBLE"),threshold_color="darkgreen",threshold_size=2)
+
+# custom layouts 
+plot_performance(all_perf,plot_type="combined",models=c("GLM","GAM","BRT","RF","ENSEMBLE"),threshold_color="darkgreen",threshold_size=2) + 
+  scale_color_chroma() + 
+  theme(text=element_text(size=15))
+```
+
+# Predictions
+
+------------------------------------------------------------------------
+
+You can use `plot_prediction` to plot the output prediction of a model or ensemble model, and `plot_anomaly` if you want to plot the difference between two models or two runs from Cephalopod.
+
+## Single map
+
+For each, you can choose to have the uncertainty (standard deviation, normalized standard deviation, coefficient of variation or another custom column) to be either not displayed (`plot_uncertainty="none"`), added through a bivariate colormap (`plot_uncertainty="bivarmap"`) or added through stippling (`plot_uncertainty="stippling"`).
+
+```{r}
+# regular map of ensemble model (default: plot the predicted values with no uncertainty)
+plot_prediction(output=df_day, model="ensemble",
+                ylim=NULL,ylab="Zooplankton \ncommunity \ntransparency",
+                ycolors=c("#2D2B63","#FB3C44","#F7FF84"),
+                title="Day - Zooplankton community transparency",
+                land=df_land,landfill="beige")
+
+# with lightness correction and a different scale bar (based on quantiles, rounded to closest multiple of 5)
+# note that indicating a custom scale forces all outbound values to have the min and max color (oob_squish)
+ylim <- round(quantile(df_day$predictedvalue,c(0.025,0.975),na.rm=TRUE)/5)*5
+plot_prediction(output=df_day, model="ensemble",
+                ylim=ylim,ylab="Zooplankton \ncommunity \ntransparency",
+                ycolors=c("#2D2B63","#FB3C44","#F7FF84"),
+                correct.lightness=TRUE,
+                title="Day - Zooplankton community transparency",
+                land=NULL,landcolor="grey85",landfill="#E8E8E8")
+
+# add observations (only for the measurement values and not uncertainty)
+# note that if you have defined a different ylim, it will also apply to the observations
+plot_prediction(output=df_day, model="ensemble",
+                ylim=NULL,ylab="Zooplankton community \ntransparency",
+                ycolors=c("#2D2B63","#FB3C44","#F7FF84"),
+                correct.lightness=TRUE,legend_position="right",
+                obs=TRUE,obs_data=filter(df_obs,measurementvalue > 120),obs_size=2,
+                latitude_profile=FALSE)
+
+# with a latitudinal profile
+plot_prediction(output=df_day, model="ensemble",
+                ylim=ylim,ylab="Zooplankton community \ntransparency",
+                ycolors=c("#2D2B63","#FB3C44","#F7FF84"),
+                correct.lightness=TRUE,legend_position="bottom",
+                latitude_profile=TRUE,latitude_position="left")
+
+# regular map of uncertainty 
+plot_prediction(output=df_day, model="ensemble",plot_value="predictedsd",
+                ylim=NULL,ylab="Zooplankton \ncommunity \ntransparency \nstd",
+                ycolors=c("lightblue","red"),
+                title="Day - Zoo community transparency standard deviation",
+                land=df_land,landfill="beige")
+
+plot_prediction(output=df_day, model="ensemble",plot_value="predictedsd",
+                ylim=NULL,ylab="Zooplankton \ncommunity \ntransparency \nstd",
+                ycolors=c("#440154", "#21908D","#FDE725"),
+                title="Day - Zoo community transparency standard deviation")
+
+# add contour lines 
+xlim <- round(quantile(df_day$predictedsd,c(0.025,0.975),na.rm=TRUE))
+plot_prediction(output=df_day, model="ensemble",plot_value="predictedsd",
+                ylim=xlim,ylab="Zooplankton \ncommunity \ntransparency \nstd",
+                ycolors=c("#440154", "#21908D","#FDE725"), 
+                contour=TRUE,contour_levels=5, contour_color="black",
+                title="Day - Zoo community transparency standard deviation")
+
+```
+
+## Bivarmap
+
+```{r}
+plot_prediction(output=df_day, model="ensemble",
+                plot_uncertainty="bivarmap",uncertainty="predictedsd",
+                xlim=xlim,ylim=ylim,xlab="Standard deviation",
+                ylab="Zooplankton community \ntransparency",
+                ycolors=c("#2D2B63","#FB3C44","#F7FF84"),
+                correct.lightness=TRUE,
+                latitude_profile=FALSE,latitude_position="left")
+```
+
+## Stippling
+
+```{r}
+# threshold: mean of standard deviations + standard deviation of standard deviations 
+threshold=mean(df_day$predictedsd) + 1*sd(df_day$predictedsd)
+perc_below_threshold <- length(which(df_day$predictedsd < threshold))*100/nrow(df_day) # percentage of values below threshold 
+df_day %>% 
+  ggplot(aes(x=predictedsd)) + 
+  geom_histogram(color="white",fill="black") + 
+  geom_vline(aes(xintercept=threshold),color="darkred") + 
+  theme_minimal()
+
+# here xlab is used as the threshold label 
+plot_prediction(output=df_day, model="ensemble",
+                plot_uncertainty="stippling",uncertainty="predictedsd",
+                ylim=ylim,
+                xlab=paste0("sd > ", round(threshold,2), " (~ ", 100-round(perc_below_threshold,1), "%)"),
+                ylab="Zooplankton community \ntransparency",
+                threshold=threshold,
+                ycolors=c("#2D2B63","#FB3C44","#F7FF84"),
+                stippling_bin=2.5,stippling_size=0.5,stippling_color="black",
+                correct.lightness=TRUE,
+                latitude_profile=FALSE,legend_position="bottom")
+```
+
+## Anomaly
+
+The last possibility is to calculate an anomaly between two model results (two models, two months or two varfactors for example). The first dataset (i.e. *output)* is the reference model, and the *anomaly_data* is the dataset for which we want to compute the anomaly.
+
+Example: output = df_day, anomaly_data = df_night will compte the night anomaly as Night - Day
+
+```{r}
+# threshold: mean of standard deviations + standard deviation of standard deviations 
+threshold=mean(sqrt(df_night$predictedsd^2+df_day$predictedsd^2)) + 1*sd(sqrt(df_night$predictedsd^2+df_day$predictedsd^2))
+perc_below_threshold <- length(which(sqrt(df_night$predictedsd^2+df_day$predictedsd^2) < threshold))*100/nrow(df_day) # percentage of values below
+
+
+plot_prediction(output=df_day, model="ensemble",
+                plot_uncertainty="stippling",uncertainty="predictedsd",
+                ylim=NULL,title="Night anomaly",
+                ylab="Zooplankton night \ncommunity transparency \nanomaly",
+                threshold=threshold,
+                ycolors=c("red","white","blue"),
+                stippling_bin=2.5,stippling_size=0.5,stippling_color="black",
+                anomaly=TRUE,anomaly_data=df_night,
+                latitude_profile=FALSE,legend_position="bottom")
+```
