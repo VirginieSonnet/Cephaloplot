@@ -196,7 +196,8 @@ plot_observations <- function(df_obs, colors=c("#F7FF84","#FB3C44","#2D2B63"), a
 
 plot_performance <- function(perf,plot_type="separate",metrics=NULL,
                              models=NULL,threshold=TRUE,threshold_color="green",
-                             threshold_size=1,dot_color="darkblue",dot_size=4){
+                             threshold_size=1,dot_color="darkblue",dot_size=4,
+                             title="Model Performance"){
   # --- Function to plot the model performance metrics ---
   # Inputs: 
   #       - perf: tibble, output from extract_performance
@@ -207,6 +208,7 @@ plot_performance <- function(perf,plot_type="separate",metrics=NULL,
   #       - threshold_size: numeric, linewidth for the vertical lines
   #       - dot_color: string, color for the end dots of the segments
   #       - dot_size: numeric, size for the end dots of the segments   
+  #       - title: add a title to the plot 
   # Outputs: 
   #       - observations: tibble, initial measurementvalue, latitude, longitude, month, year and varfactor (if exist)
   
@@ -285,7 +287,7 @@ plot_performance <- function(perf,plot_type="separate",metrics=NULL,
       facet_wrap(.~metric,scale="free_x",strip.position = "top") + 
       coord_flip() +
       labs(
-        title = "Model Performance",
+        title = title,
         x = "",
         y = ""
       ) +
