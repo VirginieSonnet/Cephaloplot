@@ -164,13 +164,15 @@ plot_performance(all_perf,plot_type="combined",models=c("GLM","GAM","BRT","RF","
 
 You can use `plot_prediction` to plot the output prediction of a model or ensemble model, and `plot_anomaly` if you want to plot the difference between two models or two runs from Cephalopod.
 
+Note that for this function, your input dataframe should only contain one set of prediction values you want to plot (not for example the output from 2 different models).
+
 ## Single map
 
 For each, you can choose to have the uncertainty (standard deviation, normalized standard deviation, coefficient of variation or another custom column) to be either not displayed (`plot_uncertainty="none"`), added through a bivariate colormap (`plot_uncertainty="bivarmap"`) or added through stippling (`plot_uncertainty="stippling"`).
 
 ```{r}
 # regular map of ensemble model (default: plot the predicted values with no uncertainty)
-plot_prediction(output=df_day, model="ensemble",
+plot_prediction(output=df_day, 
                 ylim=NULL,ylab="Zooplankton \ncommunity \ntransparency",
                 ycolors=c("#2D2B63","#FB3C44","#F7FF84"),
                 title="Day - Zooplankton community transparency",
@@ -179,7 +181,7 @@ plot_prediction(output=df_day, model="ensemble",
 # with lightness correction and a different scale bar (based on quantiles, rounded to closest multiple of 5)
 # note that indicating a custom scale forces all outbound values to have the min and max color (oob_squish)
 ylim <- round(quantile(df_day$predictedvalue,c(0.025,0.975),na.rm=TRUE)/5)*5
-plot_prediction(output=df_day, model="ensemble",
+plot_prediction(output=df_day, 
                 ylim=ylim,ylab="Zooplankton \ncommunity \ntransparency",
                 ycolors=c("#2D2B63","#FB3C44","#F7FF84"),
                 correct.lightness=TRUE,
@@ -188,7 +190,7 @@ plot_prediction(output=df_day, model="ensemble",
 
 # add observations (only for the measurement values and not uncertainty)
 # note that if you have defined a different ylim, it will also apply to the observations
-plot_prediction(output=df_day, model="ensemble",
+plot_prediction(output=df_day, 
                 ylim=NULL,ylab="Zooplankton community \ntransparency",
                 ycolors=c("#2D2B63","#FB3C44","#F7FF84"),
                 correct.lightness=TRUE,legend_position="right",
@@ -197,27 +199,27 @@ plot_prediction(output=df_day, model="ensemble",
                 latitude_profile=FALSE)
 
 # with a latitudinal profile
-plot_prediction(output=df_day, model="ensemble",
+plot_prediction(output=df_day, 
                 ylim=ylim,ylab="Zooplankton community \ntransparency",
                 ycolors=c("#2D2B63","#FB3C44","#F7FF84"),
                 correct.lightness=TRUE,legend_position="bottom",
                 latitude_profile=TRUE,latitude_position="left")
 
 # regular map of uncertainty 
-plot_prediction(output=df_day, model="ensemble",plot_value="predictedsd",
+plot_prediction(output=df_day, plot_value="predictedsd",
                 ylim=NULL,ylab="Zooplankton \ncommunity \ntransparency \nstd",
                 ycolors=c("lightblue","red"),
                 title="Day - Zoo community transparency standard deviation",
                 land=df_land,landfill="beige")
 
-plot_prediction(output=df_day, model="ensemble",plot_value="predictedsd",
+plot_prediction(output=df_day, plot_value="predictedsd",
                 ylim=NULL,ylab="Zooplankton \ncommunity \ntransparency \nstd",
                 ycolors=c("#440154", "#21908D","#FDE725"),
                 title="Day - Zoo community transparency standard deviation")
 
 # add contour lines 
 xlim <- round(quantile(df_day$predictedsd,c(0.025,0.975),na.rm=TRUE))
-plot_prediction(output=df_day, model="ensemble",plot_value="predictedsd",
+plot_prediction(output=df_day, plot_value="predictedsd",
                 ylim=xlim,ylab="Zooplankton \ncommunity \ntransparency \nstd",
                 ycolors=c("#440154", "#21908D","#FDE725"), 
                 contour=TRUE,contour_levels=5, contour_color="black",
@@ -228,7 +230,7 @@ plot_prediction(output=df_day, model="ensemble",plot_value="predictedsd",
 ## Bivarmap
 
 ```{r}
-plot_prediction(output=df_day, model="ensemble",
+plot_prediction(output=df_day, 
                 plot_uncertainty="bivarmap",uncertainty="predictedsd",
                 xlim=xlim,ylim=ylim,xlab="Standard deviation",
                 ylab="Zooplankton community \ntransparency",
@@ -250,7 +252,7 @@ df_day %>%
   theme_minimal()
 
 # here xlab is used as the threshold label 
-plot_prediction(output=df_day, model="ensemble",
+plot_prediction(output=df_day, 
                 plot_uncertainty="stippling",uncertainty="predictedsd",
                 ylim=ylim,
                 xlab=paste0("sd > ", round(threshold,2), " (~ ", 100-round(perc_below_threshold,1), "%)"),
@@ -274,9 +276,10 @@ threshold=mean(sqrt(df_night$predictedsd^2+df_day$predictedsd^2)) + 1*sd(sqrt(df
 perc_below_threshold <- length(which(sqrt(df_night$predictedsd^2+df_day$predictedsd^2) < threshold))*100/nrow(df_day) # percentage of values below
 
 
-plot_prediction(output=df_day, model="ensemble",
+plot_prediction(output=df_day, 
                 plot_uncertainty="stippling",uncertainty="predictedsd",
                 ylim=NULL,title="Night anomaly",
+                xlab=paste0("sd > ", round(threshold,2), " (~ ", 100-round(perc_below_threshold,1), "%)"),
                 ylab="Zooplankton night \ncommunity transparency \nanomaly",
                 threshold=threshold,
                 ycolors=c("red","white","blue"),

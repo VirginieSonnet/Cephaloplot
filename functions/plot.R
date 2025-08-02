@@ -419,7 +419,7 @@ plot_colmat_legend <- function(col.matrix,ylim=c(1,3),xlim=c(1,3),
 }
 
 
-plot_prediction <- function(output, model="ensemble", plot_value="predictedvalue",
+plot_prediction <- function(output, plot_value="predictedvalue",
                             plot_uncertainty="none", uncertainty="predictednsd",
                             nbreaks=16,ycolors=c("#F7FF84","#FB3C44","#2D2B63" ),
                             xcolors=c("grey80","grey80"),correct.lightness=c(FALSE,FALSE),
@@ -435,7 +435,6 @@ plot_prediction <- function(output, model="ensemble", plot_value="predictedvalue
     # --- Function to plot the prediction map with uncertainty ---
     # Inputs: 
     #       - output: tibble, extracted Cephalopod data with extract_prediction
-    #       - model: string, model output to plot 
     #       - plot_value: string, column pointing to the prediction to plot (predictedvalue, predictedsd, predictednsd, predictedcv,custom), default is "predictedvalue"
     #       - plot_uncertainty: string, one of "none", "bivarmap", "stippling" or "anomaly"
     #       - uncertainty: string, if plot_uncertainty is not "none", name of the 
@@ -470,9 +469,6 @@ plot_prediction <- function(output, model="ensemble", plot_value="predictedvalue
     # Outputs: 
     #       - p: ggplot, prediction map 
   
-  # 0. Select the model output to plot 
-  selected_model <- model
-  output <- filter(output, model==selected_model) %>% ungroup()
   
   # 1. Compute the anomaly if needed 
   if (anomaly==TRUE){
@@ -498,7 +494,7 @@ plot_prediction <- function(output, model="ensemble", plot_value="predictedvalue
     }
   }
   
-  # 1. Adjust the lightness of the colors if needed 
+  # 2. Adjust the lightness of the colors if needed 
   if(correct.lightness[1] == TRUE){
     ycolors <- chroma::interp_colors(length(ycolors), colors=ycolors, interp="bezier", correct.lightness=TRUE)
   }
@@ -506,7 +502,7 @@ plot_prediction <- function(output, model="ensemble", plot_value="predictedvalue
     xcolors <- chroma::interp_colors(length(xcolors), colors=xcolors, interp="bezier", correct.lightness=TRUE)
   }
   
-  # 2. Land mask or default map world
+  # 3. Land mask or default map world
   if (is.null(land)){
     p <- ggplot() +
       geom_polygon(data = map_data("world"), aes(x = long, y = lat, group = group), 
@@ -516,16 +512,16 @@ plot_prediction <- function(output, model="ensemble", plot_value="predictedvalue
       geom_tile(data = land, aes(x = longitude, y = latitude), fill = landfill,alpha=0.7) 
   }
   
-  # 3. Modify data based on the type of plot 
+  # 4. Modify data based on the type of plot 
   
-  # 3.1. Colormap and data bins when plot_uncertainty="bivarmap"
+  # 4.1. Colormap and data bins when plot_uncertainty="bivarmap"
   if (plot_uncertainty=="bivarmap"){
     
-    # 3.1.1. Colormap and legend 
+    # 4.1.1. Colormap and legend 
     col.matrix <- colmat(nbreaks=nbreaks,right=xcolors,left=ycolors,correct.lightness=correct.lightness)
     legend <- plot_colmat_legend(col.matrix,ylim=ylim,xlim=xlim,xlab=xlab,ylab=ylab)
     
-    # 3.1.2. Values and uncertainty bins 
+    # 4.1.2. Values and uncertainty bins 
     output <- output %>% 
       mutate(ybin = cut(.data[[plot_value]],
                         breaks = seq(ylim[1], ylim[2], length.out = nbreaks + 1),  # Create 15 equal-width bins
@@ -548,11 +544,12 @@ plot_prediction <- function(output, model="ensemble", plot_value="predictedvalue
                               TRUE ~ xbin)) %>%
       left_join(col.matrix)
     
-  # 3.2. Pattern based on threshold when plot_uncertainty="stippling
+  # 4.2. Pattern based on threshold when plot_uncertainty="stippling
   } else if (plot_uncertainty=="stippling"){
     # define a stippling grid above the threshold and select a one point per cell
     stippling_grid <- output %>% ungroup() %>% 
       filter(.data[[uncertainty]] > threshold) %>%
+      mutate(pattern="selected") %>% #just to have a label for shape
       mutate(lon_bin = round(longitude / stippling_bin) * stippling_bin,
              lat_bin = round(latitude / stippling_bin) * stippling_bin) %>%
       group_by(lon_bin, lat_bin) %>%
@@ -560,8 +557,8 @@ plot_prediction <- function(output, model="ensemble", plot_value="predictedvalue
       ungroup()
   }
   
-  # 4. Plot the prediction 
-  # 4.1. Set-up layout 
+  # 5. Plot the prediction 
+  # 5.1. Set-up layout 
   p <- p +       
     # Labels 
     # longitude labels
@@ -583,52 +580,55 @@ plot_prediction <- function(output, model="ensemble", plot_value="predictedvalue
           axis.ticks = element_blank(),
           axis.title = element_blank())
   
-  # 4.2. Add prediction depending on the type of graph 
-  # 4.2.1. Regular map for plot_uncertainty="none"
+  # 5.2. Add prediction depending on the type of graph 
+  # 5.2.1. Regular map for plot_uncertainty="none"
   if (plot_uncertainty=="none"){
     p <- p + 
       geom_tile(data = output, aes(x = longitude, y = latitude, fill = .data[[plot_value]])) +
       scale_fill_gradientn(colours=ycolors,limits=ylim,oob = scales::oob_squish) + 
-      #coord_equal() +  # Ensure proper aspect ratio but does not allow for alignment with latitude plot
-      theme(legend.position=legend_position,
-            legend.margin = margin(t = -30)) # put the legend closer on the xaxis title space
+      coord_equal() +  # Ensure proper aspect ratio but does not allow for alignment with latitude plot
+      theme(legend.position=legend_position) # put the legend closer on the xaxis title space
     
-    # 4.2.2. Bivariate map for plot_uncertainty="bivarmap"
+    # 5.2.2. Bivariate map for plot_uncertainty="bivarmap"
   } else if (plot_uncertainty=="bivarmap"){
     p <- p + 
       # plot projection value 
       geom_tile(data = output, aes(x = longitude, y = latitude, fill = HEXCode)) +
       scale_fill_identity() +
+      coord_equal() + 
       theme(legend.position="none")
     
-    # add it together with the legend
+    # add plot and legend together
+    if (latitude_profile==TRUE){
+      p <- p + coord_cartesian() # change coordinates to alignate with plat
+    }
     if (latitude_position=="left"){
       p <- p + legend + plot_layout(widths=c(4,1))
-    } else {
-      p <- legend + p + plot_layout(widths=c(1,4))
-    }
+      } else if (latitude_position=="right") {
+        p <- legend + p + plot_layout(widths=c(1,4))
+      }
     
-    # 4.2.3. Stippling map for plot_uncertainty="stippling"
+    # 5.2.3. Stippling map for plot_uncertainty="stippling"
   } else if (plot_uncertainty=="stippling"){
     p <- p + 
       geom_tile(data = output, aes(x = longitude, y = latitude, fill = .data[[plot_value]])) + 
       scale_fill_gradientn(colours=ycolors,limits=ylim,oob = scales::oob_squish) + 
+      coord_equal() + 
       # stippling
-      geom_point(data = stippling_grid,aes(x = longitude, y = latitude),
-                 size = stippling_size,alpha = 0.4,color = stippling_color) +
+      geom_point(data = stippling_grid,aes(x = longitude, y = latitude,shape=pattern),size = stippling_size,alpha = 0.4,color = stippling_color) +
       scale_shape_manual(values=19,labels=xlab) + 
       labs(shape="") + 
       theme(legend.position=legend_position)
   }
   
-  # 4.3. Add contour lines (optional)
+  # 5.3. Add contour lines (optional)
   if (contour==TRUE){
     p <- p + 
       geom_contour(data=output,aes(x=longitude,y=latitude,z = .data[[plot_value]]), 
                    color = contour_color,bins=contour_levels) 
   }
   
-  # 4.4. Add observations (optional)
+  # 5.4. Add observations (optional)
   if (obs==TRUE & plot_value=="predictedvalue" & anomaly==FALSE){
     p <- p + 
       geom_point(data = obs_data,
@@ -638,18 +638,27 @@ plot_prediction <- function(output, model="ensemble", plot_value="predictedvalue
                  size = obs_size)        # adjust as needed
   }
   
-  # 4. Add a latitudinal profile (optional)
+  # 6. Add a latitudinal profile (optional)
   if(latitude_profile==TRUE){
+    # 6.1. Generate latitudinal profile
     plat <- plot_latitude_profile(df=output,lab=ylab,latname="latitude",
                                   valname=plot_value,
                                   latitude_curves="average")
     
-    # 5. Patchwork of the prediction plot, (legend) and latitudinal profile 
+    # 6.2. Remove the coord_equal from the map to be able to align 
+    p <- p + coord_cartesian()
+    
+    # 6.3. If the legend is on the bottom, adjust its position higher
+    if (legend_position=="bottom" & plot_uncertainty != "bivarmap"){
+      p <- p + theme(legend.margin = margin(t = -30))
+    }
+      
+    # 7. Patchwork of the prediction plot, (legend) and latitudinal profile 
     if (latitude_position=="right"){
       pall <- p + plat + plot_layout(widths=c(4,1))
-    } else if (latitude_position=="left"){
-      pall <- plat + p + plot_layout(widths=c(1,4))
-    }
+      } else if (latitude_position=="left"){
+        pall <- plat + p + plot_layout(widths=c(1,4))
+      }
     return(pall)
   } else {
     return(p)
