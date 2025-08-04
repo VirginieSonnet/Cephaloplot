@@ -122,7 +122,8 @@ plot_observations(df_obs,colors=c("#2D2B63","#FB3C44","#F7FF84"), alpha=0.7,
                   lab="Zooplankton community \ntransparency",
                   land=NULL,landcolor="grey85",landfill="#E8E8E8",
                   latitude_profile=TRUE,latitude_curves="average",
-                  latitude_legend=FALSE,latitude_span=0.5) 
+                  latitude_legend=FALSE,latitude_span=0.5,
+                  latitude_step=10) 
 
 # only plot 2 seasons
 plot_observations(df_obs,colors=c("#2D2B63","#FB3C44","#F7FF84"), alpha=0.7,

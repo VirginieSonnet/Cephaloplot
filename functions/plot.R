@@ -20,7 +20,7 @@
 # ----- plot_observations -----
 
 plot_latitude_profile <- function(df,lab=NULL,latitude_curves="all",latname,valname,
-                                  latitude_span=0.75,latitude_legend=TRUE){
+                                  latitude_span=0.75,latitude_legend=TRUE,latitude_step=NULL){
   # --- Function to plot a loess latitudinal profile ---
   # Inputs: 
   #       - df: tibble, observations or predictions to use for the profile 
@@ -54,7 +54,6 @@ plot_latitude_profile <- function(df,lab=NULL,latitude_curves="all",latname,valn
       geom_smooth(data=df,
                   aes(x=.data[[latname]],y=.data[[valname]]),
                   color="black",method="gam",span=latitude_span,se=TRUE) 
-    
   } 
   # plot the seasons latitudinal profile 
   if (!"average" %in% latitude_curves){
@@ -82,7 +81,7 @@ plot_latitude_profile <- function(df,lab=NULL,latitude_curves="all",latname,valn
           "spring" = "#33a02c",  # green
           "summer" = "#ffcc00",  # yellow (readable on white)
           "autumn" = "#e66101"   # orange/red
-        ))
+        )) 
   }
   
   # Add a legend (optional)
@@ -95,6 +94,12 @@ plot_latitude_profile <- function(df,lab=NULL,latitude_curves="all",latname,valn
       plat <- plat + guides(color = guide_legend(nrow = 2, byrow = TRUE))
     }
   }
+  
+  # Adjust the measurement value step (optional)
+  if (!is.null(latitude_step)){
+    plat <- plat +
+      scale_y_continuous(breaks = seq(round(min(df[valname])), round(max(df[valname])), by = latitude_step))
+  }
   return(plat)
 }
   
@@ -104,7 +109,8 @@ plot_observations <- function(df_obs, colors=c("#F7FF84","#FB3C44","#2D2B63"), a
                             lab="Values",title=NULL,legend_position="right",
                             land=NULL,landcolor="grey85",landfill="#E8E8E8",
                             latitude_profile=FALSE,latitude_position="left",
-                            latitude_curves="all",latitude_span=0.75,latitude_legend=TRUE){
+                            latitude_curves="all",latitude_span=0.75,
+                            latitude_legend=TRUE,latitude_step=NULL){
   # --- Function to plot the prediction map with uncertainty ---
   # Inputs: 
   #       - df_obs: tibble, extracted observations data with extract_observations
@@ -122,6 +128,7 @@ plot_observations <- function(df_obs, colors=c("#F7FF84","#FB3C44","#2D2B63"), a
   #       - latitude_curves: vector, either "all" (average+seasons),"average" or a custom vector of the northern hemisphere seasons wanted (winter = 12,1,2, spring=3,4,5, summer=6,7,8, autumn=9,10,11)
   #       - latitude_span: numeric, span for the loess function in geom_smooth (the higher the smoother), only if < 1000 points 
   #       - latitude_legend: boolean, include the legend on the bottom or not 
+  #       - latitude_step: numeric, step between tick labels for the mesurement value axis (x axis)
   # Outputs: 
   #       - p/pall: ggplot/patchwork plot, prediction map and latitude profile
   
@@ -141,13 +148,14 @@ plot_observations <- function(df_obs, colors=c("#F7FF84","#FB3C44","#2D2B63"), a
     p <- ggplot() +
       geom_tile(data = land, aes(x = longitude, y = latitude), fill = landfill) 
   }
+  
   # 2.2. Observations
   p <- p + 
     geom_point(data = df_obs, 
                aes(x = decimallongitude, y = decimallatitude, color = measurementvalue),
                alpha=alpha) +
     scale_color_gradientn(colours=colors,limits=lim,oob = scales::oob_squish) + 
-    #coord_equal() +  # Ensure proper aspect ratio but does not allow for alignment with latitude plot
+    coord_equal() +  # Ensure proper aspect ratio but does not allow for alignment with latitude plot
   
     # 2.3. Labels 
     # longitude labels
@@ -169,8 +177,8 @@ plot_observations <- function(df_obs, colors=c("#F7FF84","#FB3C44","#2D2B63"), a
           axis.text = element_text(size = 10, color = "gray20"), # Latitude and longitude labels
           axis.ticks = element_blank(),
           axis.title = element_blank(),
-          legend.position=legend_position,
-          legend.margin = margin(t = -30)) # put the legend closer on the xaxis title space
+          legend.position=legend_position)
+  
   
   # 3. Latitude profile (optional)
   if(latitude_profile==TRUE){
@@ -178,7 +186,12 @@ plot_observations <- function(df_obs, colors=c("#F7FF84","#FB3C44","#2D2B63"), a
                                   valname="measurementvalue",
                                   latitude_curves=latitude_curves,
                                   latitude_span=latitude_span,
-                                  latitude_legend=latitude_legend)
+                                  latitude_legend=latitude_legend,
+                                  latitude_step=latitude_step)
+    
+    # Remove the coord_equal from the map to be able to align 
+    p <- p + coord_cartesian() + 
+      theme(legend.margin = margin(t = -30)) # put the legend closer on the xaxis title space
     
     # 4. Patchwork of the observations plot and latitudinal profile 
     if (latitude_position=="right"){
@@ -312,7 +325,7 @@ plot_performance <- function(perf,plot_type="separate",metrics=NULL,
       scale_size_continuous(name = "Cum. VIP (%)") +
       scale_color_viridis_c(name = "NSD") +
       labs(
-        title = "Model Performance",
+        title = title,
         x = "", y = expression(R^2)
       ) +
       theme_minimal(base_size = 13)
